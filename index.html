@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Timer with Day Wise Analytics</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #ffffff; /* White background */
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            color: #444;
+        }
+
+        /* Timer Input Section */
+        .timer-input {
+            margin: 10px 0;
+        }
+
+        .timer-input label {
+            font-size: 16px;
+        }
+
+        .timer-input input {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100px;
+            text-align: center;
+        }
+
+        /* Buttons */
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+            color: white;
+        }
+
+        button#startButton {
+            background-color: #007bff;
+        }
+
+        button#startButton:hover {
+            background-color: #0056b3;
+        }
+
+        button#resetButton {
+            background-color: #28a745;
+        }
+
+        button#resetButton:hover {
+            background-color: #218838;
+        }
+
+        button#resetEverythingButton {
+            margin-top: 40px;
+            padding: 12px 30px;
+            background-color: #dc3545;
+        }
+
+        button#resetEverythingButton:hover {
+            background-color: #c82333;
+        }
+
+        /* Message Styling */
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        /* Analytics Section */
+        #analytics {
+            margin-top: 50px;
+        }
+
+        #analytics h2 {
+            font-size: 22px;
+            color: #444;
+        }
+
+        table {
+            margin: 20px auto;
+            width: 90%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        #todaysCount {
+            font-size: 18px;
+            color: #444;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Timer with Day Wise Analytics</h1>
+    <div>
+        <div class="timer-input">
+            <label for="timer1">Timer 1 (seconds): </label>
+            <input type="number" id="timer1" min="0" value="60">
+        </div>
+        <div class="timer-input">
+            <label for="timer2">Timer 2 (seconds): </label>
+            <input type="number" id="timer2" min="0" value="60">
+        </div>
+        <div class="timer-input">
+            <label for="timer3">Timer 3 (seconds): </label>
+            <input type="number" id="timer3" min="0" value="60">
+        </div>
+        <button id="startButton" onclick="startTimers()">Start</button>
+        <button id="resetButton" onclick="startTimers()" style="display:none;">Start Again</button>
+        <p id="message"></p>
+    </div>
+
+    <div id="analytics">
+        <p id="todaysCount">Total clicks today: 0</p>
+        <h2>Daily Analytics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Start Button Clicks</th>
+                </tr>
+            </thead>
+            <tbody id="analyticsTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <button id="resetEverythingButton" onclick="resetEverything()">Reset Everything</button>
+
+    <script>
+        let timers = [];
+        let currentTimerIndex = 0;
+        let timerInterval;
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        window.onload = () => {
+            const savedTimer1 = localStorage.getItem('timer1');
+            const savedTimer2 = localStorage.getItem('timer2');
+            const savedTimer3 = localStorage.getItem('timer3');
+            if (savedTimer1) document.getElementById('timer1').value = savedTimer1;
+            if (savedTimer2) document.getElementById('timer2').value = savedTimer2;
+            if (savedTimer3) document.getElementById('timer3').value = savedTimer3;
+
+            loadAnalytics();
+        };
+
+        function startTimers() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            timers = [
+                parseInt(document.getElementById('timer1').value),
+                parseInt(document.getElementById('timer2').value),
+                parseInt(document.getElementById('timer3').value)
+            ];
+
+            localStorage.setItem('timer1', timers[0]);
+            localStorage.setItem('timer2', timers[1]);
+            localStorage.setItem('timer3', timers[2]);
+
+            updateDailyAnalytics();
+
+            currentTimerIndex = 0;
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('resetButton').style.display = 'none';
+            startTimer();
+        }
+
+        function startTimer() {
+            if (currentTimerIndex >= timers.length) {
+                document.getElementById('message').textContent = "All timers completed!";
+                playSound('end');
+                document.getElementById('resetButton').style.display = 'inline-block';
+                return;
+            }
+
+            let timeRemaining = timers[currentTimerIndex];
+            updateMessage(timeRemaining);
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateMessage(timeRemaining);
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    playSound('beep');
+                    currentTimerIndex++;
+                    startTimer();
+                }
+            }, 1000);
+        }
+
+        function updateMessage(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            document.getElementById('message').textContent = `Timer ${currentTimerIndex + 1}: ${minutes}m ${remainingSeconds}s remaining`;
+        }
+
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(type === 'beep' ? 350 : 660, audioContext.currentTime); // Frequency: 350Hz for beep, 660Hz for end
+            oscillator.connect(audioContext.destination);
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), 150); // Play for 150ms
+        }
+
+        function updateDailyAnalytics() {
+            const today = getFormattedDate();
+            let dailyCount = parseInt(localStorage.getItem(today) || '0');
+            dailyCount++;
+            localStorage.setItem(today, dailyCount);
+            loadAnalytics();
+        }
+
+        function getFormattedDate() {
+            const date = new Date();
+            const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+            const dayNumber = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${dayNumber}/${month}/${year} (${day})`;
+        }
+
+        function loadAnalytics() {
+            const analyticsTableBody = document.getElementById('analyticsTableBody');
+            analyticsTableBody.innerHTML = "";
+
+            const today = getFormattedDate();
+            let totalClicksToday = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes("/")) {
+                    const count = parseInt(localStorage.getItem(key));
+                    const row = `
+                        <tr>
+                            <td>${key}</td>
+                            <td>${count}</td>
+                        </tr>`;
+                    analyticsTableBody.innerHTML += row;
+
+                    if (key === today) {
+                        totalClicksToday = count;
+                    }
+                }
+            }
+
+            document.getElementById('todaysCount').textContent = `Total clicks today: ${totalClicksToday}`;
+        }
+
+        function resetEverything() {
+            if (confirm("Are you sure you want to reset everything? This will clear all data!")) {
+                localStorage.clear();
+                document.getElementById('timer1').value = 60;
+                document.getElementById('timer2').value = 60;
+                document.getElementById('timer3').value = 60;
+                document.getElementById('analyticsTableBody').innerHTML = "";
+                document.getElementById('todaysCount').textContent = "Total clicks today: 0";
+                resetTimers();
+                alert("All data has been reset!");
+            }
+        }
+
+        function resetTimers() {
+            clearInterval(timerInterval);
+            document.getElementById('message').textContent = "";
+            document.getElementById('startButton').style.display = 'inline-block';
+            document.getElementById('resetButton').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
