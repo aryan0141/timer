@@ -233,7 +233,7 @@
         function playSound(type) {
             const oscillator = audioContext.createOscillator();
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(type === 'beep' ? 350 : 660, audioContext.currentTime); // Frequency: 350Hz for beep, 660Hz for end
+            oscillator.frequency.setValueAtTime(type === 'beep' ? 350 : 350, audioContext.currentTime); // Frequency: 350Hz for beep, 660Hz for end
             oscillator.connect(audioContext.destination);
             oscillator.start();
             setTimeout(() => oscillator.stop(), 150); // Play for 150ms
